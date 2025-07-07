@@ -3,7 +3,7 @@ from flask_jwt_extended.exceptions import JWTExtendedException
 
 from .auth_service import user_id_credentials
 from .chat_service import get_current_chat, add_message
-from .social_media_service import get_all_posts, get_comments_of_post, delete_comment, \
+from .social_media_service import get_all_posts, get_comments_of_post_auth, delete_comment, \
     delete_post, update_comment, update_post, create_comment, create_post, \
     inc_post_upvotes, dec_post_upvotes, inc_post_dnvotes, dec_post_dnvotes, \
     handle_comment_vote, handle_post_vote, get_all_posts_auth
@@ -13,7 +13,7 @@ from .user_service import get_user_info_by_id
 __all__ = [
     'user_id_credentials',
     'get_current_chat', 'add_message',
-    'get_all_posts', 'get_comments_of_post', 'delete_comment', 'delete_post', 
+    'get_all_posts', 'get_comments_of_post_auth', 'delete_comment', 'delete_post', 
     'update_comment', 'update_post', 'create_comment', 'create_post', 
     'inc_post_upvotes', 'dec_post_upvotes', 'inc_post_dnvotes', 
     'dec_post_dnvotes', 'handle_comment_vote', 'handle_post_vote', 

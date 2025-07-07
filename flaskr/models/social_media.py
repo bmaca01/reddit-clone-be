@@ -1,3 +1,4 @@
+import uuid
 from flaskr.extensions import db
 
 class Post(db.Model):
@@ -52,6 +53,7 @@ class Comment(db.Model):
 
     def to_dict(self):
         return {
+            'author': self.user.to_dict(),
             'comment_id': self.comment_id,
             'post_id': self.post_id,
             'user_id': self.user_id,

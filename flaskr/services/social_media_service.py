@@ -38,19 +38,24 @@ def get_all_posts(
 
     posts = db.paginate(stmt, error_out=False)
 
+    ls = []
     for post in posts:
-        print(post.comments)
-        if len(post.comments) != 0:
+        d = post.to_dict()
+        d.update({'total_votes': post.upvotes_cnt - post.dnvotes_cnt, 'user_vote': None})
+        if len(post.comments) > 0:
+            cmts = []
             for comment in post.comments:
-                print(comment)
-                print(comment.to_dict())
-
-    res = [(
-        post.to_dict(comments=True) | {
-            "total_votes": post.upvotes_cnt - post.dnvotes_cnt,
-            "user_vote": None,
-        }
-    ) for post in posts]
+                cmt = comment.to_dict()
+                cmt.update({
+                    'total_votes': comment.upvotes_cnt - comment.dnvotes_cnt,
+                    'user_vote': None
+                })
+                cmts.append(cmt)
+            d['comments'] = { 'items': cmts }
+        else:
+            #d['comments'] = { 'items': [] }
+            d['comments'] = []
+        ls.append(d)
 
     rtn = {
         'pagination': {
@@ -63,6 +68,7 @@ def get_all_posts(
             'next_page': posts.next_num
         }
     }
+
     # Add total-dependent fields if total was calculated
     if include_total:
         rtn['pagination'].update({
@@ -71,13 +77,13 @@ def get_all_posts(
         })
 
     if sort_votes:
-        res = sorted(
-            res, 
+        ls = sorted(
+            ls, 
             key=lambda it: it['total_votes'], 
             reverse=(order == 'desc')
         )
 
-    rtn['items'] = res
+    rtn['items'] = ls
     return rtn
 
 def get_all_posts_auth(
@@ -173,15 +179,22 @@ def get_all_posts_auth(
     for row in items:
         print(row)
         post, user_vote = row
-        d = post.to_dict(comments=True)
+        d = post.to_dict()
+        if len(post.comments) > 0:
+            cmts = get_comments_of_post_auth(user_id, post.post_id)
+            d['comments'] = cmts
+        else:
+            #d['comments'] = { 'items': [] }
+            d['comments'] = []
+
         d['total_votes'] = post.upvotes_cnt - post.dnvotes_cnt
         d['user_vote'] = user_vote.value if user_vote else None
         print(d)
         rtn.append(d)
 
     if sort_by in {'total_votes', 'user_vote'}:
-        return sorted(
-            res, 
+        rtn = sorted(
+            rtn, 
             key=lambda it: it[sort_by], 
             reverse=(order == 'desc')
         )
@@ -190,131 +203,65 @@ def get_all_posts_auth(
         'pagination': pagination_info
     }
 
-def get_all_posts_auth_old(user_id, sort_by='created_at', order='asc', **kwargs):
-    class TextClausePagination:
-        def __init__(self, text_clause, page, per_page, params=None):
-            self.text_clause = text_clause
-            self.page = page
-            self.per_page = per_page
-            self.params = params or {}
-            self._items = None
-            self._total = None
-        
-        @property
-        def items(self):
-            if self._items is None:
-                self._load_items()
-            return self._items
-        
-        @property
-        def total(self):
-            if self._total is None:
-                self._load_total()
-            return self._total
-        
-        def _load_items(self):
-            offset = (self.page - 1) * self.per_page
-            sql = self.text_clause.text + f" LIMIT {self.per_page} OFFSET {offset}"
-            result = db.session.execute(text(sql), self.params)
-            self._items = result.fetchall()
-        
-        def _load_total(self):
-            count_sql = f"SELECT COUNT(*) FROM ({self.text_clause.text}) as count_query"
-            result = db.session.execute(text(count_sql), self.params)
-            self._total = result.scalar()
-        
-        @property
-        def pages(self):
-            return (self.total + self.per_page - 1) // self.per_page
-        
-        @property
-        def has_prev(self):
-            return self.page > 1
-        
-        @property
-        def has_next(self):
-            return self.page < self.pages
-    
-        @property
-        def prev_num(self):
-            return self.page - 1 if self.has_prev else None
-    
-        @property
-        def next_num(self):
-            return self.page + 1 if self.has_next else None
-    
-        # Make the pagination object iterable
-        def __iter__(self):
-            """Make the pagination object iterable over items"""
-            return iter(self.items)
-    
-        def __len__(self):
-            """Return the number of items on current page"""
-            return len(self.items)
-    
-        def __getitem__(self, index):
-            """Allow indexing into the items"""
-            return self.items[index]
-
-    if ((not hasattr(Post, sort_by))
-        and (sort_by != 'total_votes')
-        and (sort_by != 'user_vote')):
-        raise ValueError(f"Invalid sort field: {sort_by!r}")
-
-    stmt = text(
-        f""" 
-        SELECT 
-	        p.post_id, pv.user_id AS user_vote, p.user_id, 
-            p.title, p.content, 
-            pv.vote_direction, (p.upvotes_cnt - p.dnvotes_cnt) AS total_votes,
-            p.upvotes_cnt, p.dnvotes_cnt,
-            p.created_at, p.updated_at,
-            u1.username 
-        FROM post AS p
-        LEFT JOIN post_votes AS pv ON pv.post_id = p.post_id
-        LEFT JOIN user AS u1 ON u1.user_id = p.user_id
-        LEFT JOIN user AS u2 ON u2.user_id = {user_id}
-        ORDER BY {sort_by} {order}
-        """)
-
-    posts = TextClausePagination(
-        text_clause=stmt,
-        page=kwargs.get('page', 1),
-        per_page=kwargs.get('per_page', 20),
-    )
-
-    res = []
-    print(posts[0]._fields)
-    for i in posts:
-        res.append({
-            'author': {
-                'username': i.username
-            },
-            'post_id': i.post_id
-            
-        })
-    #return [dict(r._mapping) for r in posts]
-    return
-
-def get_comments_of_post(post_id, sort_by='created_at', order='asc'):
+def get_comments_of_post_auth(
+    user_id: int, 
+    post_id: int, 
+    sort_by: str = 'created_at', 
+    order: str = 'asc'
+):
     post = Post.query.get(post_id)
     if not post:
         raise ValueError("Post not found")
-    if not hasattr(Comment, sort_by):
-        raise ValueError(f"Invalid sort field: {sort_by!r}")
-    column = getattr(Comment, sort_by)
-    if order.lower() == 'desc':
-        column = column.desc()
-    elif order.lower() == 'asc':
-        column = column.asc()
-    else:
-        raise ValueError(f"Invalid order: {order}")
-    #comments = Comment.query.filter_by(post_id=post_id).order_by(column).all()
-    comments = db.paginate(db.select(Comment)
-                           .where(Comment.post_id == post_id)
-                           .order_by(column), error_out=False)
 
-    return [comment.to_dict() for comment in comments]
+    if (not hasattr(Comment, sort_by) 
+        and (sort_by != 'total_votes')
+        and (sort_by != 'user_vote')):
+        raise ValueError(f"Invalid sort field: {sort_by!r}")
+    _s = ((sort_by != 'total_votes') and (sort_by != 'user_vote'))
+    if _s:
+        column = getattr(Comment, sort_by)
+    if _s and (order.lower() == 'desc'):
+        column = column.desc()
+    elif _s and (order.lower() == 'asc'):
+        column = column.asc()
+    elif ((not _s or _s) 
+          and (order.lower() != 'desc')
+          and (order.lower() != 'asc')):
+        raise ValueError(f"Invalid order: {order}")
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=sa_exc.SAWarning)
+        stmt = (
+            select(Comment, CommentVotes.vote_direction)
+            .join_from(
+                Comment, CommentVotes,
+                onclause=and_(
+                    CommentVotes.comment_id == Comment.comment_id,
+                    CommentVotes.user_id == user_id
+                ), isouter=True
+            )
+        )
+
+        if _s:
+            stmt = stmt.order_by(column)
+        res = db.session.execute(stmt)
+    items = res.all()
+
+    rtn = []
+    for row in items:
+        cmt, user_vote = row
+        d = cmt.to_dict()
+        d['total_votes'] = cmt.upvotes_cnt - cmt.dnvotes_cnt
+        d['user_vote'] = user_vote.value if user_vote else None
+        rtn.append(d)
+
+    if sort_by in {'total_votes', 'user_vote'}:
+        rtn = sorted(
+            rtn, 
+            key=lambda it: it[sort_by], 
+            reverse=(order == 'desc')
+        )
+    return rtn
 
 def delete_post(user_id, post_id):
     post = Post.query.filter_by(post_id=post_id, user_id=user_id).first()

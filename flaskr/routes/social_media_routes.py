@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required, current_user
 from flaskr.models import User
-from flaskr.services import get_comments_of_post, get_all_posts, delete_post, \
+from flaskr.services import get_comments_of_post_auth, get_all_posts, delete_post, \
     delete_comment, update_comment, update_post, create_comment, create_post, \
     handle_post_vote, handle_comment_vote, get_all_posts_auth, \
     USER_NOT_AUTHORIZED
@@ -46,12 +46,13 @@ def get_posts():
         return jsonify({"error": str(e)}), 500
 
 @social_media_bp.route('/<int:post_id>/comments', methods=['GET'], strict_slashes=False)
-@swag_from('../docs/social_media_routes/get_post_comments.yml')
+@jwt_required(optional=True)
+#@swag_from('../docs/social_media_routes/get_post_comments.yml')
 def get_post_comments(post_id):
     sort_by = request.args.get('sort_by', 'created_at')
     order = request.args.get('order', 'asc')
     try:
-        comments = get_comments_of_post(post_id, sort_by, order)
+        comments = get_comments_of_post_auth(current_user.user_id, post_id, sort_by, order)
         return jsonify(comments), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 404
