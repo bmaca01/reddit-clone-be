@@ -39,6 +39,7 @@ class Comment(db.Model):
     __tablename__ = 'comment'
 
     comment_id = db.Column(db.Integer, primary_key=True)
+    temp_id = db.Column(db.String(36), nullable=True, unique=True, default=uuid.uuid4)
     post_id = db.Column(db.Integer, db.ForeignKey('post.post_id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
