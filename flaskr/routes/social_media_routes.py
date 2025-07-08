@@ -41,8 +41,7 @@ def get_posts():
             posts = get_all_posts(sort_by=sort_by, order=order, page=page, per_page=per_page)
         return jsonify(posts), 200
     except Exception as e:
-        raise e
-        #print(str(e))
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 @social_media_bp.route('/<int:post_id>/comments', methods=['GET'], strict_slashes=False)
@@ -63,9 +62,9 @@ def get_post_comments(post_id):
 @jwt_required()
 @swag_from('../docs/social_media_routes/delete_post.yml')
 def delete_posts(user_id, post_id):
-    if ((current_user.account_type.name != 'SuperUser') 
-        and (current_user.user_id != user_id)):
-        return USER_NOT_AUTHORIZED(current_user.user_id)
+    #if ((current_user.account_type.name != 'SuperUser') 
+    #    and (current_user.user_id != user_id)):
+    #    return USER_NOT_AUTHORIZED(current_user.user_id)
 
     result = delete_post(user_id, post_id)
     if not result:
@@ -128,28 +127,29 @@ def create_posts(user_id):
     data = request.get_json()
     title = data.get("title")
     content = data.get("content")
+    temp_id = data.get("temp_id")
     if not title:
         return jsonify({"error": "Title is required"}), 400
     if not content:
         return jsonify({"error": "content is required"}), 400
-    result = create_post(user_id, title, content)
+    if not temp_id:
+        return jsonify({"error": "temp_id is required"}), 400
+    result = create_post(user_id, temp_id, title, content)
     return jsonify({
                     "message": "Post Created Successfully",
-                    "comment" : result
+                    "post" : result
         }), 201
 
 @social_media_bp.route('/<int:user_id>/post/<int:post_id>/comment', methods=['POST'])
 @jwt_required()
 @swag_from('../docs/social_media_routes/create_comments.yml')
 def create_comments(user_id, post_id):
-    if ((current_user.account_type.name != 'SuperUser') 
-        and (current_user.user_id != user_id)):
-        return USER_NOT_AUTHORIZED(current_user.user_id)
     data = request.get_json()
     content = data.get("content")
-    if not content:
-        return jsonify({"error": "Content is required"}), 400
-    result = create_comment(user_id, post_id, content)
+    temp_id = data.get("temp_id")
+    if (not content) or (not temp_id):
+        return jsonify({"error": "Content and temp_id is required"}), 400
+    result = create_comment(current_user.user_id, post_id, content, temp_id)
     return jsonify({
                     "message": "Comment Created Successfully",
                     "comment" : result

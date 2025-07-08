@@ -51,7 +51,7 @@ def get_all_posts(
                     'user_vote': None
                 })
                 cmts.append(cmt)
-            d['comments'] = { 'items': cmts }
+            d['comments'] = cmts
         else:
             #d['comments'] = { 'items': [] }
             d['comments'] = []
@@ -177,7 +177,6 @@ def get_all_posts_auth(
         
     rtn = []
     for row in items:
-        print(row)
         post, user_vote = row
         d = post.to_dict()
         if len(post.comments) > 0:
@@ -189,7 +188,6 @@ def get_all_posts_auth(
 
         d['total_votes'] = post.upvotes_cnt - post.dnvotes_cnt
         d['user_vote'] = user_vote.value if user_vote else None
-        print(d)
         rtn.append(d)
 
     if sort_by in {'total_votes', 'user_vote'}:
@@ -299,10 +297,11 @@ def update_comment(user_id, comment_id, new_data):
     db.session.commit()
     return comment.to_dict()
 
-def create_post(user_id, title, content):
+def create_post(user_id, temp_id, title, content):
     now = datetime.now()
     new_post = Post(
         user_id=user_id,
+        temp_id=temp_id,
         title=title,
         content=content,
         created_at=now,
@@ -312,9 +311,10 @@ def create_post(user_id, title, content):
     db.session.commit()
     return new_post.to_dict()
 
-def create_comment(user_id, post_id, content):
+def create_comment(user_id, post_id, content, temp_id):
     now = datetime.now()
     new_comment = Comment(
+        temp_id=temp_id,
         user_id=user_id,
         post_id=post_id,
         content=content,
@@ -371,27 +371,20 @@ def handle_post_vote(post_id, vote_direction, user_id):
 
 def handle_comment_vote(comment_id, vote_direction, user_id):
     res = CommentVotes.query.filter_by(comment_id=comment_id, user_id=user_id).first()
-    print("here 1")
-    print(f"res: {res}")
     if not res:
         # Create a new vote
         if vote_direction.value == 'up':
-            print("here 2")
             inc_comment_upvotes(comment_id)
         elif vote_direction.value == 'down':
-            print("here 3")
             inc_comment_dnvotes(comment_id)
         else:
-            print("here 4")
             raise ValueError("wtf")
         new_vote = CommentVotes(
             comment_id=comment_id,
             user_id=user_id,
             vote_direction=vote_direction
         )
-        print("here 5")
         db.session.add(new_vote)
-        print("here 6")
         db.session.commit()
     elif ((res != None) and (res.vote_direction == vote_direction)):
         # Remove / undo a vote
@@ -418,7 +411,6 @@ def handle_comment_vote(comment_id, vote_direction, user_id):
             raise ValueError("wtf")
     else:
         raise ValueError("wtf")
-    print("here 7")
     return get_comment_votes(comment_id)
 
 def inc_post_upvotes(post_id):

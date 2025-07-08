@@ -28,6 +28,7 @@ class UnauthorizedError(JWTExtendedException):
 
 def USER_NOT_AUTHORIZED(uid: int|None=None) -> Response:
     if uid:
+        print(f'User with id {uid} does not have permission to this resource')
         return jsonify({
             'error': f'User with id {uid} does not have permission to this resource'
         }), 401

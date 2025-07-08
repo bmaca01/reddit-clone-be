@@ -5,6 +5,7 @@ class Post(db.Model):
     __tablename__ = 'post'
 
     post_id = db.Column(db.Integer, primary_key=True)
+    temp_id = db.Column(db.String(36), nullable=True, unique=True, default=uuid.uuid4)
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), nullable=False)
     title = db.Column(db.String(255), nullable=False)
     content = db.Column(db.Text, nullable=True)
@@ -21,6 +22,7 @@ class Post(db.Model):
         author = self.user.to_dict()
         result = {
             'post_id': self.post_id,
+            'temp_id': self.temp_id,
             'user_id': self.user_id,
             'title': self.title,
             'content': self.content,
@@ -56,6 +58,7 @@ class Comment(db.Model):
         return {
             'author': self.user.to_dict(),
             'comment_id': self.comment_id,
+            'temp_id': self.temp_id,
             'post_id': self.post_id,
             'user_id': self.user_id,
             'content': self.content,
