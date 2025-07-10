@@ -15,6 +15,7 @@ class User(db.Model):
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
     address = db.relationship('Address', backref=db.backref('user', lazy=True))
+    user_detail = db.relationship('UserDetail', backref=db.backref('user', lazy=True), uselist=False)
 
     post_votes = db.relationship('PostVotes', back_populates='user', cascade='all, delete-orphan')
     comment_votes = db.relationship('CommentVotes', back_populates='user', cascade='all, delete-orphan')
@@ -44,16 +45,21 @@ class User(db.Model):
             "user_id": self.user_id,
             "username": self.username,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            'details': self.user_detail.to_dict() if self.user_detail else dict()
         }
 
-class SuperUser(db.Model):
-    __tablename__ = 'super_user'
+class UserDetail(db.Model):
+    __tablename__ = 'user_detail'
     
     user_id = db.Column(db.Integer, db.ForeignKey('user.user_id'), primary_key=True)
-    user = db.relationship('User', backref=db.backref('super_user', uselist=False))
+    f_name = db.Column(db.String(100), nullable=True)
+    l_name = db.Column(db.String(100), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
 
     def to_dict(self):
         return {
-            "user_id": self.user_id
+            'f_name': self.f_name,
+            'l_name': self.l_name,
+            'bio': self.bio,
         }

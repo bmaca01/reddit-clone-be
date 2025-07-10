@@ -4,7 +4,7 @@ from flaskr.models import User
 from flaskr.services import get_comments_of_post_auth, get_all_posts, delete_post, \
     delete_comment, update_comment, update_post, create_comment, create_post, \
     handle_post_vote, handle_comment_vote, get_all_posts_auth, \
-    USER_NOT_AUTHORIZED
+    USER_NOT_AUTHORIZED, UnauthorizedError
 from flaskr.struct import VoteDirection
 from flasgger import swag_from
 
@@ -58,28 +58,35 @@ def get_post_comments(post_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-@social_media_bp.route('/<int:user_id>/post/<int:post_id>', methods=['DELETE'])
+@social_media_bp.route('/post/<int:post_id>', methods=['DELETE'])
 @jwt_required()
-@swag_from('../docs/social_media_routes/delete_post.yml')
-def delete_posts(user_id, post_id):
+#@swag_from('../docs/social_media_routes/delete_post.yml')
+def delete_posts(post_id):
     #if ((current_user.account_type.name != 'SuperUser') 
     #    and (current_user.user_id != user_id)):
     #    return USER_NOT_AUTHORIZED(current_user.user_id)
 
-    result = delete_post(user_id, post_id)
-    if not result:
+    try:
+        result = delete_post(current_user, post_id)
+    except UnauthorizedError as e:
+        return USER_NOT_AUTHORIZED(current_user.user_id)
+    except ValueError as e:
+        return jsonify({"error": "Post not found or unauthorized"}), 404
+    except Exception as e:
         return jsonify({"error": "Post not found or unauthorized"}), 404
     return jsonify(result), 200
 
-@social_media_bp.route('/<int:user_id>/comment/<int:comment_id>', methods=['DELETE'])
+@social_media_bp.route('/comment/<int:comment_id>', methods=['DELETE'])
 @jwt_required()
-@swag_from('../docs/social_media_routes/delete_comment.yml')
-def delete_comments(user_id, comment_id):
-    if ((current_user.account_type.name != 'SuperUser') 
-        and (current_user.user_id != user_id)):
+#@swag_from('../docs/social_media_routes/delete_comment.yml')
+def delete_comments(comment_id):
+    try:
+        result = delete_comment(current_user, comment_id)
+    except UnauthorizedError as e:
         return USER_NOT_AUTHORIZED(current_user.user_id)
-    result = delete_comment(user_id, comment_id)
-    if not result:
+    except ValueError as e:
+        return jsonify({"error": "Comment not found or unauthorized"}), 404
+    except Exception as e:
         return jsonify({"error": "Comment not found or unauthorized"}), 404
     return jsonify(result), 200
 

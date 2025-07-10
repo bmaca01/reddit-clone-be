@@ -45,12 +45,13 @@ def get_all_posts(
         if len(post.comments) > 0:
             cmts = []
             for comment in post.comments:
-                cmt = comment.to_dict()
-                cmt.update({
-                    'total_votes': comment.upvotes_cnt - comment.dnvotes_cnt,
-                    'user_vote': None
-                })
-                cmts.append(cmt)
+                if comment.post_id == post.post_id:
+                    cmt = comment.to_dict()
+                    cmt.update({
+                        'total_votes': comment.upvotes_cnt - comment.dnvotes_cnt,
+                        'user_vote': None
+                    })
+                    cmts.append(cmt)
             d['comments'] = cmts
         else:
             #d['comments'] = { 'items': [] }
@@ -248,10 +249,11 @@ def get_comments_of_post_auth(
     rtn = []
     for row in items:
         cmt, user_vote = row
-        d = cmt.to_dict()
-        d['total_votes'] = cmt.upvotes_cnt - cmt.dnvotes_cnt
-        d['user_vote'] = user_vote.value if user_vote else None
-        rtn.append(d)
+        if cmt.post_id == post_id:
+            d = cmt.to_dict()
+            d['total_votes'] = cmt.upvotes_cnt - cmt.dnvotes_cnt
+            d['user_vote'] = user_vote.value if user_vote else None
+            rtn.append(d)
 
     if sort_by in {'total_votes', 'user_vote'}:
         rtn = sorted(
@@ -261,21 +263,34 @@ def get_comments_of_post_auth(
         )
     return rtn
 
-def delete_post(user_id, post_id):
-    post = Post.query.filter_by(post_id=post_id, user_id=user_id).first()
+def delete_post(user, post_id):
+    from flaskr.services import UnauthorizedError
+    #return {'msg': 'pass'}
+    post: Post = Post.query.filter_by(post_id=post_id).first()
+    is_su = user.account_type.value == 'superuser'
+    is_author = user.user_id == post.user_id
     if not post:
-        return None
+        raise ValueError("Post not found")
+    if ((not is_author) and (not is_su)):
+        raise UnauthorizedError
+    post_dict = post.to_dict(comments=True)
     db.session.delete(post)
     db.session.commit()
-    return {"message": "Post and it comments deleted successfully", "post_id": post_id}
+    return {"message": "Post deleted successfully", "post": post_dict}
 
-def delete_comment(user_id, comment_id):
-    comment = Comment.query.filter_by(comment_id=comment_id, user_id=user_id).first()
+def delete_comment(user, comment_id):
+    from flaskr.services import UnauthorizedError
+    comment = Comment.query.filter_by(comment_id=comment_id).first()
+    is_su = user.account_type.value == 'superuser'
+    is_author = user.user_id == comment.user_id
     if not comment:
-        return None
+        raise ValueError("Post not found")
+    if ((not is_author) and (not is_su)):
+        raise UnauthorizedError
+    cmt_dict = comment.to_dict()
     db.session.delete(comment)
     db.session.commit()
-    return {"message": "Comment deleted successfully", "comment_id": comment_id}
+    return {"message": "Comment deleted successfully", "comment": cmt_dict}
 
 def update_post(user_id, post_id, new_data):
     post = Post.query.filter_by(post_id=post_id, user_id=user_id).first()

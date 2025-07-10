@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 27e6c1b2c2d3
+Revision ID: a7d3c10a82ad
 Revises: 
-Create Date: 2025-07-05 11:23:35.638267
+Create Date: 2025-07-08 15:56:22.141360
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '27e6c1b2c2d3'
+revision = 'a7d3c10a82ad'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -87,6 +87,7 @@ def upgrade():
     )
     op.create_table('post',
     sa.Column('post_id', sa.Integer(), nullable=False),
+    sa.Column('temp_id', sa.String(length=36), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('title', sa.String(length=255), nullable=False),
     sa.Column('content', sa.Text(), nullable=True),
@@ -95,12 +96,8 @@ def upgrade():
     sa.Column('created_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
-    sa.PrimaryKeyConstraint('post_id')
-    )
-    op.create_table('super_user',
-    sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
-    sa.PrimaryKeyConstraint('user_id')
+    sa.PrimaryKeyConstraint('post_id'),
+    sa.UniqueConstraint('temp_id')
     )
     op.create_table('user_audit',
     sa.Column('audit_id', sa.Integer(), nullable=False),
@@ -122,8 +119,17 @@ def upgrade():
     sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
     sa.PrimaryKeyConstraint('audit_id')
     )
+    op.create_table('user_detail',
+    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('f_name', sa.String(length=100), nullable=True),
+    sa.Column('l_name', sa.String(length=100), nullable=True),
+    sa.Column('bio', sa.Text(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
+    sa.PrimaryKeyConstraint('user_id')
+    )
     op.create_table('comment',
     sa.Column('comment_id', sa.Integer(), nullable=False),
+    sa.Column('temp_id', sa.String(length=36), nullable=True),
     sa.Column('post_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('content', sa.Text(), nullable=False),
@@ -133,7 +139,8 @@ def upgrade():
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=True),
     sa.ForeignKeyConstraint(['post_id'], ['post.post_id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.user_id'], ),
-    sa.PrimaryKeyConstraint('comment_id')
+    sa.PrimaryKeyConstraint('comment_id'),
+    sa.UniqueConstraint('temp_id')
     )
     op.create_table('post_votes',
     sa.Column('post_id', sa.Integer(), nullable=False),
@@ -159,8 +166,8 @@ def downgrade():
     op.drop_table('comment_votes')
     op.drop_table('post_votes')
     op.drop_table('comment')
+    op.drop_table('user_detail')
     op.drop_table('user_audit')
-    op.drop_table('super_user')
     op.drop_table('post')
     op.drop_table('notification')
     op.drop_table('message')

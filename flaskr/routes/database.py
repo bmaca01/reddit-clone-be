@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from flaskr.models import User, SuperUser, Post, Comment, Notification, Chat, Message, UserAudit
+from flaskr.models import User, Post, Comment, Notification, Chat, Message, UserAudit
 from flasgger import swag_from
 
 database_bp = Blueprint("database", __name__)
