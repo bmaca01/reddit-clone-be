@@ -18,4 +18,4 @@ USER appuser
 EXPOSE 8000
 
 # Start the FastAPI app with Gunicorn for production
-CMD ["gunicorn", "--threads", "4", "0.0.0.0", "--port", "8000", "flaskr:create_app()"]
+CMD ["gunicorn", "--threads", "4", "-b", "0.0.0.0:8080", "'flaskr:create_app()'"]
