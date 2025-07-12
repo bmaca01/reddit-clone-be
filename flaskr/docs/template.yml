@@ -1,0 +1,209 @@
+swagger: '2.0'
+info:
+  title: 'Group 5 - Mediline REST API'
+  description: 'For CS490. API documentation'
+  version: '0.1'
+securityDefinitions:
+  Bearer:
+    type: apiKey
+    name: Authorization
+    in: header
+    description: >-
+      JWT Authorization header using the Bearer scheme. Example: "Authorization: Bearer {token}"
+security:
+  - Bearer: []
+definitions:
+ 
+  Address:
+    type: object
+    required:
+    - address1
+    - city_id
+    - state
+    - zipcode
+    properties:
+      address_id:
+        type: integer
+      address1:
+        type: string
+      address2:
+        type: string
+      city_id:
+        type: integer
+      state:
+        type: string
+      zipcode:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      city:
+        $ref: '#/definitions/City'
+  City:
+    type: object
+    required:
+    - city
+    - country_id
+    properties:
+      city_id:
+        type: integer
+      city:
+        type: string
+      country_id:
+        type: integer
+      addresses:
+        type: array
+        items:
+          $ref: '#/definitions/Address'
+      country:
+        $ref: '#/definitions/Country'
+  Country:
+    type: object
+    required:
+    - country
+    properties:
+      country_id:
+        type: integer
+      country:
+        type: string
+      cities:
+        type: array
+        items:
+          $ref: '#/definitions/City'
+  User:
+    type: object
+    required:
+    - username
+    - password
+    - account_type
+    - email
+    - phone
+    properties:
+      user_id:
+        type: integer
+      password:
+        type: string
+        format: password
+      address_id:
+        type: integer
+      account_type:
+        type: string
+      email:
+        type: string
+      created_at:
+        type: string
+      updated_at:
+        type: string
+      address:
+        $ref: '#/definitions/Address'
+      messages:
+        type: array
+        items:
+          $ref: '#/definitions/Message'
+      posts:
+        type: array
+        items:
+          $ref: '#/definitions/Post'
+      comments:
+        type: array
+        items:
+          $ref: '#/definitions/Comment'
+ 
+  Message:
+    type: object
+    required:
+    - chat_id
+    - user_id
+    - message_content
+    properties:
+      message_id:
+        type: integer
+      chat_id:
+        type: integer
+      user_id:
+        type: integer
+      message_content:
+        type: string
+      time:
+        type: string
+        format: date-time
+      chat:
+        $ref: '#/definitions/Chat'
+      user:
+        $ref: '#/definitions/User'
+  Chat:
+    type: object
+    required:
+    - appointment_id
+    properties:
+      chat_id:
+        type: integer
+      appointment_id:
+        type: integer
+      start_date:
+        type: string
+        format: date-time
+      end_date:
+        type: string
+        format: date-time
+      messages:
+        type: array
+        items:
+          $ref: '#/definitions/Message'
+      appointment:
+        $ref: '#/definitions/Appointment'
+  Post:
+    type: object
+    required:
+    - user_id
+    - title
+    properties:
+      post_id:
+        type: integer
+      user_id:
+        type: integer
+      title:
+        type: string
+      content:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      user:
+        $ref: '#/definitions/User'
+      comments:
+        type: array
+        items:
+          $ref: '#/definitions/Comment'
+  Comment:
+    type: object
+    required:
+    - post_id
+    - user_id
+    - content
+    properties:
+      comment_id:
+        type: integer
+      post_id:
+        type: integer
+      user_id:
+        type: integer
+      content:
+        type: string
+      created_at:
+        type: string
+        format: date-time
+      updated_at:
+        type: string
+        format: date-time
+      post:
+        $ref: '#/definitions/Post'
+      user:
+        $ref: '#/definitions/User'
+ 
